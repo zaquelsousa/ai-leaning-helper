@@ -1,0 +1,13 @@
+# Binaries
+ai-helper
+
+# Environment variables
+.env
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# OS/editor files
+.DS_Store
