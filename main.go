@@ -2,11 +2,19 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	//"io/fs"
 	"net/http"
 	"os"
+	//"path/filepath"
+	//"strings"
 	"time"
+
+	_ "modernc.org/sqlite"
 )
 
 type Message struct {
@@ -31,14 +39,142 @@ type Flashcard struct {
     Answer   string `json:"answer"`
 }
 
+func calculateHash(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(data)
+
+	return hex.EncodeToString(hash[:]), nil
+}
+
+
+func openDatabase() (*sql.DB, error) {
+	db, err := sql.Open("sqlite", "documents.db")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS documents (
+			id INTEGER PRIMARY KEY,
+			path TEXT NOT NULL UNIQUE,
+			content_hash TEXT NOT NULL,
+			processed_at TEXT NOT NULL
+		);
+	`)
+
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func hasDocumentChanged(db *sql.DB, path string, currentHash string) (bool, error){
+	var storeHash string
+
+	err := db.QueryRow(`
+		SELECT content_hash
+		FROM documents
+		WHERE path = ?
+	`, path).Scan(&storeHash)
+
+	if err == sql.ErrNoRows {
+		return true, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return storeHash != currentHash, nil
+}
+
+func updateDocumentHash(db *sql.DB, path string, currentHash string) error {
+	_, err := db.Exec(`
+		INSERT INTO documents (path, content_hash, processed_at)
+		VALUES (?, ?, datetime('now'))
+		ON CONFLICT(path) DO UPDATE SET
+			content_hash = excluded.content_hash,
+			processed_at = datetime('now')
+	`, path, currentHash)
+
+	return err
+}
+
 func main(){
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run . <file>")
 		return
 	}
 
-	filePath := os.Args[1]
+	/*
+	//open the db
+	db, err := openDatabase()
+	if err != nil {
+		fmt.Println("Database error:", err)
+		return
+	}
+	defer db.Close()
+	fmt.Println("Database opened successfully")
 
+	//scan the dir for .md files
+	root := "/home/zakk/Desktop/computerScience/Operation-first-job/vaults/backend-roadmap"
+
+	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		if strings.HasSuffix(d.Name(), ".md"){
+			hash, err := calculateHash(path)
+			
+			if err != nil {
+				return err
+			}
+			
+			changed, err := hasDocumentChanged(db, path, hash)
+			
+			if err != nil {
+				fmt.Println("Error:", err)
+				os.Exit(1)
+			}
+
+			if !changed {
+				fmt.Println("Skip:", path)
+				return nil
+			}
+
+			fmt.Println("Process: ", path)
+
+			err = updateDocumentHash(db, path, hash)
+			if err != nil {
+				return err
+			}
+
+
+			//fmt.Printf("File: %s\n", path)
+			//fmt.Printf("Hash: %s\n\n", hash)
+		}
+
+		return nil
+	})
+	
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	*/
+	//parse a md file so i can use with the prompt
+	filePath := os.Args[1]
 	studyNote, err := os.ReadFile(filePath)
 
 	if err != nil {
@@ -47,8 +183,6 @@ func main(){
 	}
  	
 	text := string(studyNote)
-
-	//fmt.Println(text)
 
  	
 	msg := Message{
@@ -111,7 +245,6 @@ func main(){
 	}
 
 
-	//fmt.Println(result.Message.Content)
 	fmt.Printf("\nresponse time: %s\n", elapsed)
 	
 }
