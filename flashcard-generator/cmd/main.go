@@ -1,20 +1,12 @@
 package main
 
 import (
-	//"bytes"
-	//"crypto/sha256"
-	//"database/sql"
-	//"encoding/hex"
-	//"encoding/json"
+	"bytes"
+	"encoding/json"
 	"fmt"
-	//"io/fs"
+	llmconfig "learn-helper/internal/Llmconfig"
 	"learn-helper/internal/scanner"
-	//"net"
-	//"net/http"
-	"os"
-	//"path/filepath"
-	//"strings"
-	//"time"
+	"net/http"
 
 	_ "modernc.org/sqlite"
 )
@@ -46,157 +38,46 @@ type Flashcard struct {
 
 
 func main(){
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run . <file>")
-		return
-	}
+	//root := "/home/zakk/Desktop/computerScience/Operation-first-job/vaults/backend-roadmap"
+	test := "/home/zakk/test"
 
-	
-	root := "/home/zakk/Desktop/computerScience/Operation-first-job/vaults/backend-roadmap"
-	err := scanner.WalkDirRecursive(root)
+	notes, err := scanner.WalkDirRecursive(test)
 	if err != nil{
 		fmt.Println("error on scan notes")
 		return
 	}
+
 	
 	
-	/*scan the designated dir for notes
-	also we need blaclist notes
-	//open the db
-	db, err := openDatabase()
-	if err != nil {
-		fmt.Println("Database error:", err)
-		return
-	}
-	defer db.Close()
-	fmt.Println("Database opened successfully")
+	var model  llmconfig.LLM
 
-	//scan the dir for .md files
+	model.SetModel()
 
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	var allFlashcards []Flashcard
+
+	for _, note := range notes{
+		var flashcards []Flashcard
+
+		resp, err := model.Chat(note)
 		if err != nil {
-			return err
+			fmt.Println(err)
+			return
 		}
 
-		if d.IsDir() {
-			return nil
+		err = json.Unmarshal([]byte(resp.Message.Content), &flashcards)
+		if err != nil{
+			fmt.Println("Error parsing flashcards:", err)
+			fmt.Println("Raw response:", resp.Message.Content)
+			return
 		}
-
-		if strings.HasSuffix(d.Name(), ".md"){
-			hash, err := calculateHash(path)
-			
-			if err != nil {
-				return err
-			}
-			
-			changed, err := hasDocumentChanged(db, path, hash)
-			
-			if err != nil {
-				fmt.Println("Error:", err)
-				os.Exit(1)
-			}
-
-			if !changed {
-				fmt.Println("Skip:", path)
-				return nil
-			}
-
-			fmt.Println("Process: ", path)
-
-			err = updateDocumentHash(db, path, hash)
-			if err != nil {
-				return err
-			}
-
-
-			//fmt.Printf("File: %s\n", path)
-			//fmt.Printf("Hash: %s\n\n", hash)
-		}
-
-		return nil
-	})
-	
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-	*/
-
-
-	 
-	/*LLM call so it gens the cards
-	//parse a md file so i can use with the prompt
-	filePath := os.Args[1]
-	studyNote, err := os.ReadFile(filePath)
-
-	if err != nil {
-		fmt.Println("Error: ", err)
-		return
-	}
- 	
-	text := string(studyNote)
-
- 	
-	msg := Message{
-		Role: "user",
-		Content: `Read the following study notes and generate 5 flashcards. 
-		Rules:
-		- Questions must test understanding, not simple word matching.
-		- Answers must be concise and grounded in the notes.
-		- Do not invent information.
-		- Return ONLY a valid JSON array.
-		- Each object must contain "question" and "answer".
-
-		Study notes:` + "\n" + text,
+		
+		allFlashcards = append(allFlashcards, flashcards...)
+		//this ... means that go will apeand the element rather then the slices
 	}
 
-	message := ChatRequest{
-		Model: "qwen3:4b",
-		Messages: []Message{msg},
-		Stream: false,
-	}
-	
-	
-	jsonBytes, err := json.Marshal(message)
-	if err != nil {
-		panic("Failed to marshal JSON: " + err.Error())
-	}
-
-	reqBody := bytes.NewBuffer(jsonBytes)
-
-	start := time.Now()
-	response, err := http.Post("http://localhost:11434/api/chat", "application/json", reqBody)
-	elapsed := time.Since(start)
-	
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer response.Body.Close()
-
-	fmt.Println("Status Code: \n", response.StatusCode)
-
-	var result ChatResponse
-	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
-		fmt.Println("Error decoding response:", err)
-		return
-	}
-
-	var flashcards []Flashcard
-
-	err = json.Unmarshal([]byte(result.Message.Content), &flashcards)
-	if err != nil{
-		fmt.Println("Error parsing flashcards:", err)
-		fmt.Println("Raw response:", result.Message.Content)
-		return
-	}
-	*/
-	
-	
-
-	/* we send to the API so it can insert on db and see on frontend
 	
 	//in go _ mean that we dont care about the idx but we want the actual element
-	for _, card := range flashcards { 
+	for _, card := range allFlashcards { 
 		data, err := json.Marshal(card)
 		if err != nil {
 			fmt.Printf("Error parsing cards")
@@ -212,10 +93,10 @@ func main(){
 
 	}
 	
-	*/
-
-
 	//metrics
-	//fmt.Printf("\nresponse time: %s\n", elapsed)
+	fmt.Printf("Job finish with:")
+	fmt.Println("Token in: ", model.TokenIn)
+	fmt.Println("Token out: ", model.TokenOut)
+	fmt.Println("Duration: ", model.Duration)
 	
 }

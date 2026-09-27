@@ -29,7 +29,8 @@ func isBlacklisted(path string, blacklist []string)bool{
 	return false
 }
 
-func WalkDirRecursive(root string) error{
+func WalkDirRecursive(root string)([]string, error){
+	var notes []string
 	//creeate the sql file where the process will store the state of
 	//the notes
 	db, err := OpenDatabase()
@@ -73,20 +74,20 @@ func WalkDirRecursive(root string) error{
 			}
 			
 			fmt.Println("Process: ", path)
-			
-			
 
 			err = UpdateDocumentHash(db, path, hash)
+			notes = append(notes, path)
+
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("File: %s\n", path)
-			fmt.Printf("Hash: %s\n\n", hash)
+			//fmt.Printf("File: %s\n", path)
+			//fmt.Printf("Hash: %s\n\n", hash)
 		}
 
 		return nil
 	})
 	
-	return nil
+	return notes, nil
 }
