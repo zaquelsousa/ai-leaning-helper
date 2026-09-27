@@ -1,0 +1,94 @@
+* {
+  box-sizing: border-box;
+  }
+
+body {
+margin: 0;
+min-height: 100vh;
+
+```
+display: flex;
+justify-content: center;
+align-items: center;
+
+font-family: system-ui, sans-serif;
+background: #f4f4f4;
+color: #222;
+```
+
+}
+
+.container {
+width: min(600px, 90%);
+text-align: center;
+}
+
+h1 {
+margin-bottom: 30px;
+}
+
+.flashcard {
+min-height: 300px;
+padding: 40px;
+
+```
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+
+background: white;
+border-radius: 12px;
+
+box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+cursor: pointer;
+
+user-select: none;
+```
+
+}
+
+.flashcard:hover {
+transform: translateY(-2px);
+}
+
+.flashcard h2 {
+margin: 0;
+}
+
+.flashcard p {
+margin-top: 25px;
+font-size: 1.2rem;
+}
+
+.hidden {
+display: none;
+}
+
+#next-button {
+margin-top: 20px;
+
+```
+padding: 12px 25px;
+
+border: none;
+border-radius: 6px;
+
+background: #222;
+color: white;
+
+font-size: 1rem;
+cursor: pointer;
+```
+
+}
+
+#next-button:hover {
+opacity: 0.85;
+}
+
+#message {
+margin-top: 15px;
+}
+

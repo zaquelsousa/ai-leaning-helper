@@ -12,7 +12,7 @@ import (
 	"os"
 	//"path/filepath"
 	//"strings"
-	"time"
+	//"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -172,7 +172,7 @@ func main(){
 		fmt.Println("Error:", err)
 	}
 
-	*/
+	
 	//parse a md file so i can use with the prompt
 	filePath := os.Args[1]
 	studyNote, err := os.ReadFile(filePath)
@@ -237,14 +237,49 @@ func main(){
 		fmt.Println("Error parsing flashcards:", err)
 		fmt.Println("Raw response:", result.Message.Content)
 		return
+	}*/
+	
+	flashcards := []Flashcard{
+		{
+			Question: "What is HTTP?",
+			Answer:   "A protocol used for communication between clients and servers.",
+		},
+		{
+			Question: "What does GET do in HTTP?",
+			Answer:   "It requests a representation of a resource.",
+		},
+		{
+			Question: "What does POST do in HTTP?",
+			Answer:   "It submits data to the server, commonly to create a resource.",
+		},
+		{
+			Question: "What status code means 'Not Found'?",
+			Answer:   "404 Not Found.",
+		},
+		{
+			Question: "What status code means a resource was created?",
+			Answer:   "201 Created.",
+		},
+	}
+	
+	//in go _ mean that we dont care about the idx but we want the actual element
+	for _, card := range flashcards { 
+		data, err := json.Marshal(card)
+		if err != nil {
+			fmt.Printf("Error parsing cards")
+		}
+		
+		resp, err := http.Post("http://localhost:8080/flashcards", "application/json", bytes.NewReader(data))
+		if err != nil {
+			fmt.Printf("error while createing the flashcard on the API")
+		}
+	
+		fmt.Println(resp.Status)
+		defer resp.Body.Close()
+
 	}
 
-	for i, card := range flashcards {
-		fmt.Printf("%d. %s\n", i+1, card.Question)
-		fmt.Printf("Answer: %s\n\n", card.Answer)
-	}
 
-
-	fmt.Printf("\nresponse time: %s\n", elapsed)
+	//fmt.Printf("\nresponse time: %s\n", elapsed)
 	
 }
