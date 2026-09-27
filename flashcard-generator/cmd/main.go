@@ -1,14 +1,16 @@
 package main
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"database/sql"
-	"encoding/hex"
-	"encoding/json"
+	//"bytes"
+	//"crypto/sha256"
+	//"database/sql"
+	//"encoding/hex"
+	//"encoding/json"
 	"fmt"
 	//"io/fs"
-	"net/http"
+	"learn-helper/internal/scanner"
+	//"net"
+	//"net/http"
 	"os"
 	//"path/filepath"
 	//"strings"
@@ -39,72 +41,9 @@ type Flashcard struct {
     Answer   string `json:"answer"`
 }
 
-func calculateHash(path string) (string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-
-	hash := sha256.Sum256(data)
-
-	return hex.EncodeToString(hash[:]), nil
-}
 
 
-func openDatabase() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "documents.db")
-	if err != nil {
-		return nil, err
-	}
 
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS documents (
-			id INTEGER PRIMARY KEY,
-			path TEXT NOT NULL UNIQUE,
-			content_hash TEXT NOT NULL,
-			processed_at TEXT NOT NULL
-		);
-	`)
-
-	if err != nil {
-		db.Close()
-		return nil, err
-	}
-
-	return db, nil
-}
-
-func hasDocumentChanged(db *sql.DB, path string, currentHash string) (bool, error){
-	var storeHash string
-
-	err := db.QueryRow(`
-		SELECT content_hash
-		FROM documents
-		WHERE path = ?
-	`, path).Scan(&storeHash)
-
-	if err == sql.ErrNoRows {
-		return true, nil
-	}
-
-	if err != nil {
-		return false, err
-	}
-
-	return storeHash != currentHash, nil
-}
-
-func updateDocumentHash(db *sql.DB, path string, currentHash string) error {
-	_, err := db.Exec(`
-		INSERT INTO documents (path, content_hash, processed_at)
-		VALUES (?, ?, datetime('now'))
-		ON CONFLICT(path) DO UPDATE SET
-			content_hash = excluded.content_hash,
-			processed_at = datetime('now')
-	`, path, currentHash)
-
-	return err
-}
 
 func main(){
 	if len(os.Args) < 2 {
@@ -112,7 +51,17 @@ func main(){
 		return
 	}
 
-	/*
+	
+	root := "/home/zakk/Desktop/computerScience/Operation-first-job/vaults/backend-roadmap"
+	err := scanner.WalkDirRecursive(root)
+	if err != nil{
+		fmt.Println("error on scan notes")
+		return
+	}
+	
+	
+	/*scan the designated dir for notes
+	also we need blaclist notes
 	//open the db
 	db, err := openDatabase()
 	if err != nil {
@@ -123,7 +72,6 @@ func main(){
 	fmt.Println("Database opened successfully")
 
 	//scan the dir for .md files
-	root := "/home/zakk/Desktop/computerScience/Operation-first-job/vaults/backend-roadmap"
 
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -171,8 +119,11 @@ func main(){
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
+	*/
 
-	
+
+	 
+	/*LLM call so it gens the cards
 	//parse a md file so i can use with the prompt
 	filePath := os.Args[1]
 	studyNote, err := os.ReadFile(filePath)
@@ -237,30 +188,12 @@ func main(){
 		fmt.Println("Error parsing flashcards:", err)
 		fmt.Println("Raw response:", result.Message.Content)
 		return
-	}*/
-	
-	flashcards := []Flashcard{
-		{
-			Question: "What is HTTP?",
-			Answer:   "A protocol used for communication between clients and servers.",
-		},
-		{
-			Question: "What does GET do in HTTP?",
-			Answer:   "It requests a representation of a resource.",
-		},
-		{
-			Question: "What does POST do in HTTP?",
-			Answer:   "It submits data to the server, commonly to create a resource.",
-		},
-		{
-			Question: "What status code means 'Not Found'?",
-			Answer:   "404 Not Found.",
-		},
-		{
-			Question: "What status code means a resource was created?",
-			Answer:   "201 Created.",
-		},
 	}
+	*/
+	
+	
+
+	/* we send to the API so it can insert on db and see on frontend
 	
 	//in go _ mean that we dont care about the idx but we want the actual element
 	for _, card := range flashcards { 
@@ -271,15 +204,18 @@ func main(){
 		
 		resp, err := http.Post("http://localhost:8080/flashcards", "application/json", bytes.NewReader(data))
 		if err != nil {
-			fmt.Printf("error while createing the flashcard on the API")
+			fmt.Printf("error while createing the flashcard on the API slk")
 		}
 	
 		fmt.Println(resp.Status)
 		defer resp.Body.Close()
 
 	}
+	
+	*/
 
 
+	//metrics
 	//fmt.Printf("\nresponse time: %s\n", elapsed)
 	
 }
